@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -92,11 +93,59 @@ public class BasicItemController {
      * @ModelAttribute 자체 생략 가능
      * model.addAttribute(item) 자동 추가
      */
-    @PostMapping("/add")
+    /*@PostMapping("/add")
     public String addItemV4(Item item) {
         itemRepository.save(item);
         return "basic/item";
+    }*/
+
+    /**
+     * PRG - Post/Redirect/Get
+     * 리다이렉트를 함으로써 새로고침으로 인한 중복 등록 방지
+     */
+    /*@PostMapping("/add")
+    public String addItemV5(Item item) {
+        itemRepository.save(item);
+        return "redirect:/basic/items/" + item.getId();
+    }*/
+
+    /*
+        RedirectAttrivutes를 이용하여 PRG 방식 적용
+     */
+    @PostMapping("/add")
+    public String addItemV6(Item item, RedirectAttributes redirectAttributes) {
+
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);    // status 파라미터에 따른 저장완료 화면 출력 목적
+
+        return "redirect:/basic/items/{itemId}";
     }
+
+
+    /*
+        상품 수정 폼 렌더링 컨트롤러
+     */
+    @GetMapping("/{itemId}/edit")
+    public String editForm(@PathVariable Long itemId, Model model) {
+        Item item = itemRepository.findById(itemId);
+        model.addAttribute("item", item);
+
+        return "basic/editForm";
+    }
+
+    /*
+        상품 수정 POST 처리 컨트롤러
+     */
+    @PostMapping("/{itemId}/edit")
+    public String edit(@PathVariable Long itemId, @ModelAttribute Item item) {
+        itemRepository.update(itemId, item);
+        return "redirect:/basic/items/{itemId}";        // 상품 상세 화면으로 리다이렉트
+                                                        // 스프링에서는 redirect:/ 로 편리한 리다이렉트 지원
+                                                        // 컨트롤러에 매핑된 값을 그대로 사용할수 있다.
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * 테스트용 데이터 추가
